@@ -5,6 +5,9 @@ import os
 import sys
 import time
 import config
+import pathlib
+import random
+
 try:
     input = raw_input
 except NameError:
@@ -159,7 +162,17 @@ def create_pool(batch_service_client, pool_id):
             ),
             node_agent_sku_id="batch.node.ubuntu 18.04"),
         vm_size=config._POOL_VM_SIZE,
-        target_dedicated_nodes=config._POOL_NODE_COUNT
+        target_dedicated_nodes=config._POOL_NODE_COUNT,
+        start_task=batchmodels.StartTask(
+            command_line="/bin/bash -c \"apt-get update && apt-get install -y exiftool\"",
+            wait_for_success=True,
+            user_identity=batchmodels.UserIdentity(
+                auto_user=batchmodels.AutoUserSpecification(
+                    scope=batchmodels.AutoUserScope.pool,
+                    elevation_level=batchmodels.ElevationLevel.admin
+                )
+            ),
+        )
     )
     batch_service_client.pool.add(new_pool)
 
@@ -201,7 +214,11 @@ def add_tasks(batch_service_client, job_id, input_files):
 
     for idx, input_file in enumerate(input_files):
 
-        command = "/bin/bash -c \"cat {}\"".format(input_file.file_path)
+        #command = "/bin/bash -c \"cat {}\"".format(input_file.file_path)
+        # command = "/bin/bash -c \"exiftool '-gps*' {}\"".format(input_file.file_path)
+        cmd = f'''echo \\"https://www.google.com/maps/search/?api=1&query=$(exiftool -gpsposition -s3 -n {input_file.file_path}| sed -e 's/ /+/')\\"'''
+        command = f'/bin/bash -c "{cmd}"'
+        print(f'command: {command}')
         tasks.append(batch.models.TaskAddParameter(
             id='Task{}'.format(idx),
             command_line=command,
@@ -311,13 +328,12 @@ if __name__ == '__main__':
     # Use the blob client to create the containers in Azure Storage if they
     # don't yet exist.
 
-    input_container_name = 'input'
+    input_container_name = 'input' + str(random.randint(1,10))
     blob_client.create_container(input_container_name, fail_on_exist=False)
 
     # The collection of data files that are to be processed by the tasks.
-    input_file_paths = [os.path.join(sys.path[0], 'taskdata0.txt'),
-                        os.path.join(sys.path[0], 'taskdata1.txt'),
-                        os.path.join(sys.path[0], 'taskdata2.txt')]
+    imgpath = pathlib.Path('../img')
+    input_file_paths = imgpath.glob('*.jpg')
 
     # Upload the data files.
     input_files = [
@@ -359,10 +375,6 @@ if __name__ == '__main__':
         print_batch_exception(err)
         raise
 
-    # Clean up storage resources
-    print('Deleting container [{}]...'.format(input_container_name))
-    blob_client.delete_container(input_container_name)
-
     # Print out some timing info
     end_time = datetime.datetime.now().replace(microsecond=0)
     print()
@@ -376,6 +388,10 @@ if __name__ == '__main__':
 
     if query_yes_no('Delete pool?') == 'yes':
         batch_client.pool.delete(config._POOL_ID)
+
+    # Clean up storage resources
+    print('Deleting container [{}]...'.format(input_container_name))
+    blob_client.delete_container(input_container_name)
 
     print()
     input('Press ENTER to exit...')
