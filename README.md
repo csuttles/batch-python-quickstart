@@ -8,7 +8,8 @@ products:
 ---
 
 # Fork of a Quickstart
-The intent of this repo is to demonstrate how a quickstart can be turned into something more useful, with very little change.
+The intent of this repo is to demonstrate how a quickstart can be turned into something more useful, with very little change. It's based on / related to my blog article, here:
+https://blog.csuttles.io/extending-the-azure-batch-python-quickstart/
 
 ## OK, what does it do?
 This batch example extends the quickstart by customizing the batch node for our use by installing exiftool. With exiftool installed we can extract GPS Position for all the photos in our blob storage container, and use that GPS Position to output a link to a map for the location of the picture. This script create a blob storage container, and will then upload the photos in the `img` dir (along with any `.jpg` files you add there). Once photos are uploaded, it will create a pool and batch group based on out specification and run the job. One exit, it will clean up any resources provisioned by the script.
