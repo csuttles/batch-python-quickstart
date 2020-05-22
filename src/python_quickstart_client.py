@@ -216,7 +216,7 @@ def add_tasks(batch_service_client, job_id, input_files):
 
         #command = "/bin/bash -c \"cat {}\"".format(input_file.file_path)
         # command = "/bin/bash -c \"exiftool '-gps*' {}\"".format(input_file.file_path)
-        cmd = f'''echo \\"https://www.google.com/maps/search/?api=1&query=$(exiftool -gpsposition -s3 -n {input_file.file_path}| sed -e 's/ /+/')\\"'''
+        cmd = f'''echo \\"https://www.google.com/maps/search/?api=1&query=$(exiftool -gpsposition -s3 -n {input_file.file_path}| sed -e 's/ /+/')\\" && echo {input_file.file_path}'''
         command = f'/bin/bash -c "{cmd}"'
         print(f'command: {command}')
         tasks.append(batch.models.TaskAddParameter(
